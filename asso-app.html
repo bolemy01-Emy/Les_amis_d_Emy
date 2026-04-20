@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AssoMgr</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--surface:#161b22;--card:#21262d;
+  --orange:#f0883e;--green:#3fb950;--blue:#58a6ff;
+  --yellow:#e3b341;--red:#f85149;--muted:#8b949e;
+  --border:#30363d;--text:#e6edf3;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+/* NAV */
+nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;position:sticky;top:0;z-index:100;overflow-x:auto}
+.logo{font-family:'Bebas Neue',cursive;font-size:24px;color:var(--orange);letter-spacing:2px;padding:14px 20px 14px 0;margin-right:12px;border-right:1px solid var(--border);white-space:nowrap}
+.nav-btn{background:none;border:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;padding:16px 14px;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
+.nav-btn.active{color:var(--orange);font-weight:700;border-bottom-color:var(--orange)}
+/* PAGE */
+.page{max-width:1080px;margin:0 auto;padding:28px 20px}
+.page-section{display:none}.page-section.active{display:block}
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px}
+.stat-card{background:var(--surface);border-radius:10px;padding:14px 16px}
+/* TYPOGRAPHY */
+h1{font-family:'Bebas Neue',cursive;font-size:32px;color:var(--orange);letter-spacing:2px;margin-bottom:4px}
+h2{font-family:'Bebas Neue',cursive;font-size:19px;color:var(--text);letter-spacing:1px;margin-bottom:12px}
+.section-title{font-family:'Bebas Neue',cursive;font-size:17px;color:var(--orange);letter-spacing:1px;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+/* FORMS */
+label.lbl{display:block;font-size:11px;color:var(--muted);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none}
+textarea{resize:vertical}
+/* BUTTONS */
+.btn{border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-primary{background:var(--orange);color:#fff}
+.btn-danger{background:#da3633;color:#fff}
+.btn-blue{background:#1f6feb;color:#fff}
+.btn-ghost{background:#21262d;color:var(--muted)}
+.btn-confirm{background:#238636;color:#fff}
+.btn-sm{padding:5px 10px;font-size:12px}
+/* BADGES */
+.badge{border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700;display:inline-block;white-space:nowrap}
+/* LAYOUT */
+.flex-between{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.flex-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:#000b;z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:24px}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:5px 7px;font-weight:700;white-space:nowrap}
+td{padding:7px 7px;border-bottom:1px solid var(--card);vertical-align:middle}
+/* PROGRESS */
+.progress-bar{width:100%;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .3s}
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;background:#238636;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
+#toast.show{opacity:1}
+/* LOADER */
+.loader{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+/* PRINT */
+#print-overlay{display:none;position:fixed;inset:0;background:#000c;z-index:1000;overflow-y:auto;padding:20px}
+#print-content{max-width:750px;margin:0 auto;background:#fff;border-radius:12px;padding:32px 36px;color:#111;font-family:Arial,sans-serif;font-size:13px}
+@media print{
+  nav,#print-overlay .print-controls{display:none!important}
+  #print-overlay{position:static!important;background:white!important;padding:0!important}
+  #print-content{border-radius:0!important;box-shadow:none!important}
+}
+.field{margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">ASSO MGR</div>
+  <button class="nav-btn active" onclick="showPage('dashboard')">🏠 Dashboard</button>
+  <button class="nav-btn" onclick="showPage('evenements')">📅 Événements</button>
+  <button class="nav-btn" onclick="showPage('taches')">✅ Tâches</button>
+  <button class="nav-btn" onclick="showPage('materiel')">📦 Matériel</button>
+  <button class="nav-btn" onclick="showPage('courses')">🛒 Courses</button>
+</nav>
+
+<div class="page">
+
+<!-- ═══════════════════════════════ DASHBOARD ═══════════════════════════════ -->
+<div id="page-dashboard" class="page-section active">
+  <h1>Tableau de bord</h1>
+  <p style="color:var(--muted);margin-bottom:24px;font-size:14px">Vue d'ensemble de l'association</p>
+  <div class="grid-4" style="margin-bottom:24px">
+    <div class="stat-card" style="border-left:3px solid var(--orange)">
+      <div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Événements à venir</div>
+      <div id="stat-events" style="font-family:'Bebas Neue',cursive;font-size:36px;color:var(--orange)">—</div>
+    </div>
+    <div class="stat-card" style="border-left:3px solid var(--red)">
+      <div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Tâches en retard</div>
+      <div id="stat-late" style="font-family:'Bebas Neue',cursive;font-size:36px;color:var(--red)">—</div>
+    </div>
+    <div class="stat-card" style="border-left:3px solid var(--blue)">
+      <div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Matériel en sortie</div>
+      <div id="stat-materiel" style="font-family:'Bebas Neue',cursive;font-size:36px;color:var(--blue)">—</div>
+    </div>
+    <div class="stat-card" style="border-left:3px solid var(--yellow)">
+      <div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Articles à acheter</div>
+      <div id="stat-courses" style="font-family:'Bebas Neue',cursive;font-size:36px;color:var(--yellow)">—</div>
+    </div>
+  </div>
+  <div id="dash-next-event" style="margin-bottom:20px"></div>
+  <div class="grid-2">
+    <div class="card">
+      <h2>Tâches globales</h2>
+      <div id="dash-tasks-summary"></div>
+    </div>
+    <div class="card">
+      <h2>Tâches en retard ⚠️</h2>
+      <div id="dash-late-tasks"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ ÉVÉNEMENTS ═══════════════════════════════ -->
+<div id="page-evenements" class="page-section">
+  <div class="flex-between" style="margin-bottom:16px">
+    <h1>Événements</h1>
+    <button class="btn btn-primary" onclick="openEventModal()">+ Nouvel événement</button>
+  </div>
+  <div class="flex-row" style="margin-bottom:16px">
+    <input id="ev-search" style="max-width:280px" placeholder="🔍 Rechercher..." oninput="renderEvents()"/>
+    <select id="ev-filter-statut" style="max-width:190px" onchange="renderEvents()">
+      <option value="Tous">Tous statuts</option>
+      <option>En préparation</option><option>Confirmé</option><option>Passé</option><option>Annulé</option>
+    </select>
+  </div>
+  <div id="events-list"><div class="loader">Chargement…</div></div>
+</div>
+
+<!-- ═══════════════════════════════ TÂCHES ═══════════════════════════════ -->
+<div id="page-taches" class="page-section">
+  <div class="flex-between" style="margin-bottom:14px">
+    <h1>Tâches & Checklist</h1>
+    <div class="flex-row">
+      <button class="btn btn-ghost" onclick="applyTaskTemplate()" id="btn-task-template" style="color:var(--orange)" disabled>🍖 Template BBQ</button>
+      <button class="btn btn-primary" onclick="openTaskModal()" id="btn-add-task" disabled>+ Tâche</button>
+    </div>
+  </div>
+  <div class="field">
+    <label class="lbl">Événement</label>
+    <select id="task-event-select" style="max-width:400px" onchange="onTaskEventChange()">
+      <option value="">— Sélectionner un événement —</option>
+    </select>
+  </div>
+  <div id="task-progress" style="display:none" class="card" style="margin-bottom:14px"></div>
+  <div class="flex-row" style="margin-bottom:14px">
+    <input id="task-search" style="max-width:230px" placeholder="🔍 Tâche, responsable..." oninput="renderTasks()"/>
+    <select id="task-filter-cat" style="max-width:200px" onchange="renderTasks()">
+      <option value="Toutes">Toutes catégories</option>
+    </select>
+    <select id="task-filter-st" style="max-width:160px" onchange="renderTasks()">
+      <option value="Tous">Tous statuts</option>
+      <option>À faire</option><option>En cours</option><option>✅ Fait</option>
+    </select>
+  </div>
+  <div id="tasks-list"><div class="loader">Sélectionnez un événement</div></div>
+</div>
+
+<!-- ═══════════════════════════════ MATÉRIEL ═══════════════════════════════ -->
+<div id="page-materiel" class="page-section">
+  <div class="flex-between" style="margin-bottom:16px">
+    <h1>Matériel</h1>
+    <button class="btn btn-primary" onclick="openMaterielModal()">+ Ajouter</button>
+  </div>
+  <div class="grid-4" style="margin-bottom:18px" id="materiel-stats"></div>
+  <div class="flex-row" style="margin-bottom:14px">
+    <input id="mat-search" style="max-width:280px" placeholder="🔍 Rechercher..." oninput="renderMateriel()"/>
+    <select id="mat-filter" style="max-width:190px" onchange="renderMateriel()">
+      <option value="Tous">Tous états</option>
+      <option>Disponible</option><option>En sortie</option><option>En réparation</option><option>Perdu / HS</option>
+    </select>
+  </div>
+  <div id="materiel-list" class="grid-cards"><div class="loader">Chargement…</div></div>
+</div>
+
+<!-- ═══════════════════════════════ COURSES ═══════════════════════════════ -->
+<div id="page-courses" class="page-section">
+  <div class="flex-between" style="margin-bottom:14px">
+    <h1>🛒 Courses & Stock</h1>
+    <div class="flex-row">
+      <button class="btn btn-ghost" onclick="openHistoModal()">📊 Historique</button>
+      <button class="btn btn-primary" onclick="openListeModal()">+ Nouvelle liste</button>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="flex-between">
+      <div style="flex:1;min-width:200px">
+        <label class="lbl">Liste de courses</label>
+        <select id="course-select" style="max-width:400px" onchange="onCourseListeChange()">
+          <option value="">— Sélectionner —</option>
+        </select>
+      </div>
+      <div class="flex-row" id="course-actions" style="display:none">
+        <button class="btn btn-ghost btn-sm" onclick="editListe()">✏️</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="applyCoursesTemplate()">🍖 Template BBQ</button>
+        <button class="btn btn-blue btn-sm" onclick="openPrintView()">🖨️ Aperçu impression</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteListe()">🗑 Supprimer</button>
+      </div>
+    </div>
+  </div>
+  <div id="course-stats" style="display:none" class="grid-4" style="margin-bottom:14px"></div>
+  <div id="course-filters" style="display:none" class="flex-row" style="margin-bottom:14px">
+    <input id="course-search" style="max-width:220px" placeholder="🔍 Article, acheteur..." oninput="renderArticles()"/>
+    <select id="course-filter-cat" style="max-width:210px" onchange="renderArticles()">
+      <option value="Toutes">Toutes catégories</option>
+    </select>
+    <select id="course-filter-st" style="max-width:160px" onchange="renderArticles()">
+      <option value="Tous">Tous statuts</option>
+      <option>À acheter</option><option>En stock</option><option>Acheté ✅</option><option>Non nécessaire</option>
+    </select>
+    <button class="btn btn-primary btn-sm" onclick="openArticleModal()">+ Article</button>
+  </div>
+  <div id="courses-list"><div class="loader" style="padding:50px;text-align:center;color:var(--muted)">Créez ou sélectionnez une liste de courses.<br><span style="font-size:12px;color:#444">Le template BBQ contient 35+ articles préconfigurés.</span></div></div>
+  <div id="course-budget-total"></div>
+</div>
+
+</div><!-- end .page -->
+
+<!-- ═══ TOAST ═══ -->
+<div id="toast"></div>
+
+<!-- ═══ MODALS ═══ -->
+<div id="modal-overlay" class="modal-overlay" style="display:none" onclick="closeModalOnOverlay(event)">
+  <div class="modal-box" id="modal-box">
+    <div class="modal-header">
+      <h2 id="modal-title" style="margin:0"></h2>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ═══ PRINT OVERLAY ═══ -->
+<div id="print-overlay">
+  <div id="print-content">
+    <div class="print-controls flex-between" style="margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #e5e7eb">
+      <span style="font-weight:700;font-size:14px;color:#374151">Aperçu avant impression</span>
+      <div class="flex-row">
+        <button onclick="window.print()" style="background:#f97316;color:#fff;border:none;border-radius:7px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer">🖨️ Imprimer (Ctrl+P)</button>
+        <button onclick="closePrint()" style="background:#e5e7eb;color:#374151;border:none;border-radius:7px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">✕ Fermer</button>
+      </div>
+    </div>
+    <div id="print-body"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUPABASE INIT
+// ═══════════════════════════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://zsuzahbvyitkgccrpnrb.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Um2zK9HU-PMmPkoh2XpC7g_0AFUJxpm';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════════
+let allEvents = [], allTasks = [], allMateriel = [], allListes = [], allArticles = [];
+let currentPage = 'dashboard';
+let selectedEventId = null, selectedListeId = null;
+let editingId = null, editingType = null;
+let confirmDelId = null, confirmDelType = null;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONSTANTES
+// ═══════════════════════════════════════════════════════════════════════════════
+const TASK_CATS = ["Administratif","Logistique","Courses & Ravitaillement","Animation","Communication","Sécurité","Après l'événement","Autre"];
+const PRIORITIES = ["🔴 Urgente","🟡 Normale","🟢 Faible"];
+const STATUTS_TACHE = ["À faire","En cours","✅ Fait"];
+const ETAT_MAT = ["Disponible","En sortie","En réparation","Perdu / HS"];
+const STATUTS_COURSE = ["À acheter","En stock","Acheté ✅","Non nécessaire"];
+const COURSE_CATS = ["🥩 Viandes & Protéines","🥖 Pain & Accompagnements","🧴 Sauces & Condiments","🍺 Boissons","🧻 Consommables","🔥 BBQ & Allumage","🍰 Desserts","📦 Autre"];
+
+const taskStatusColor = {"À faire":"#e3b341","En cours":"#58a6ff","✅ Fait":"#3fb950"};
+const prioColor = {"🔴 Urgente":"#f85149","🟡 Normale":"#e3b341","🟢 Faible":"#3fb950"};
+const etatColor = {"Disponible":"#3fb950","En sortie":"#58a6ff","En réparation":"#e3b341","Perdu / HS":"#f85149"};
+const courseStatusColor = {"À acheter":"#e3b341","En stock":"#3fb950","Acheté ✅":"#58a6ff","Non nécessaire":"#8b949e"};
+const statutEvColor = {"En préparation":"#e3b341","Confirmé":"#3fb950","Passé":"#8b949e","Annulé":"#f85149"};
+
+const BARBECUE_TASKS_TPL = [
+  {cat:"Administratif",items:[
+    {title:"Demander autorisation mairie",priority:"🔴 Urgente"},
+    {title:"Déclarer l'événement en préfecture (si >500 pers.)",priority:"🔴 Urgente"},
+    {title:"Souscrire assurance événementielle",priority:"🔴 Urgente"},
+    {title:"Déclarer la buvette (autorisation temporaire)",priority:"🔴 Urgente"},
+  ]},
+  {cat:"Logistique",items:[
+    {title:"Réserver le lieu / espace",priority:"🔴 Urgente"},
+    {title:"Louer ou vérifier le matériel BBQ",priority:"🟡 Normale"},
+    {title:"Prévoir tables, chaises, barnums",priority:"🟡 Normale"},
+    {title:"Organiser le stationnement",priority:"🟢 Faible"},
+    {title:"Prévoir toilettes / sanitaires",priority:"🟡 Normale"},
+    {title:"Gérer l'éclairage si soirée",priority:"🟡 Normale"},
+  ]},
+  {cat:"Courses & Ravitaillement",items:[
+    {title:"Faire la liste des courses",priority:"🔴 Urgente"},
+    {title:"Réserver / commander les boissons",priority:"🔴 Urgente"},
+    {title:"Acheter consommables (serviettes, assiettes…)",priority:"🟡 Normale"},
+    {title:"Prévoir options végétariennes / allergies",priority:"🟡 Normale"},
+    {title:"Charbon / allume-feu / gaz",priority:"🟡 Normale"},
+  ]},
+  {cat:"Animation",items:[
+    {title:"Prévoir la sono / playlist",priority:"🟡 Normale"},
+    {title:"Organiser les jeux / animations",priority:"🟢 Faible"},
+    {title:"Désigner les maîtres du grill",priority:"🟡 Normale"},
+  ]},
+  {cat:"Communication",items:[
+    {title:"Créer et diffuser l'affiche / invitation",priority:"🟡 Normale"},
+    {title:"Envoyer les invitations (réseaux, mail, SMS)",priority:"🟡 Normale"},
+    {title:"Gérer les inscriptions / compter les participants",priority:"🟡 Normale"},
+    {title:"Rappel J-3 aux participants",priority:"🟢 Faible"},
+  ]},
+  {cat:"Sécurité",items:[
+    {title:"Prévoir trousse de premiers secours",priority:"🔴 Urgente"},
+    {title:"Prévoir extincteur à proximité des grills",priority:"🔴 Urgente"},
+    {title:"Désigner référent sécurité pour la soirée",priority:"🟡 Normale"},
+  ]},
+  {cat:"Après l'événement",items:[
+    {title:"Rangement et nettoyage du site",priority:"🟡 Normale"},
+    {title:"Retour du matériel loué",priority:"🟡 Normale"},
+    {title:"Bilan financier de l'événement",priority:"🟡 Normale"},
+    {title:"Compte-rendu et photos",priority:"🟢 Faible"},
+  ]},
+];
+
+const COURSES_TPL = [
+  {categorie:"🥩 Viandes & Protéines",articles:[
+    {nom:"Merguez",unite:"kg",qte_achetee:2,en_stock:false,qte_stock:0,prix_unit:8,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Chipolatas",unite:"kg",qte_achetee:2,en_stock:false,qte_stock:0,prix_unit:7,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Brochettes de bœuf",unite:"kg",qte_achetee:1.5,en_stock:false,qte_stock:0,prix_unit:12,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Poulet mariné",unite:"kg",qte_achetee:2,en_stock:false,qte_stock:0,prix_unit:7,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Burgers végétariens",unite:"pièces",qte_achetee:10,en_stock:false,qte_stock:0,prix_unit:1.5,acheteur_resp:"",statut:"À acheter"},
+  ]},
+  {categorie:"🥖 Pain & Accompagnements",articles:[
+    {nom:"Pain hot-dog / burger",unite:"pièces",qte_achetee:40,en_stock:false,qte_stock:0,prix_unit:0.3,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Baguettes",unite:"pièces",qte_achetee:6,en_stock:false,qte_stock:0,prix_unit:1.1,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Pommes de terre",unite:"kg",qte_achetee:5,en_stock:false,qte_stock:0,prix_unit:1.5,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Salade verte",unite:"pièces",qte_achetee:4,en_stock:false,qte_stock:0,prix_unit:1.2,acheteur_resp:"",statut:"À acheter"},
+  ]},
+  {categorie:"🧴 Sauces & Condiments",articles:[
+    {nom:"Ketchup",unite:"bouteilles",qte_achetee:3,en_stock:false,qte_stock:0,prix_unit:2.5,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Moutarde",unite:"pots",qte_achetee:2,en_stock:false,qte_stock:0,prix_unit:1.8,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Mayonnaise",unite:"pots",qte_achetee:2,en_stock:false,qte_stock:0,prix_unit:2,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Sel & Poivre",unite:"lot",qte_achetee:1,en_stock:true,qte_stock:1,prix_unit:2,acheteur_resp:"",statut:"En stock"},
+  ]},
+  {categorie:"🍺 Boissons",articles:[
+    {nom:"Bière (pack 24)",unite:"packs",qte_achetee:3,en_stock:false,qte_stock:0,prix_unit:18,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Vin rosé",unite:"bouteilles",qte_achetee:6,en_stock:false,qte_stock:0,prix_unit:5,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Jus de fruits",unite:"litres",qte_achetee:6,en_stock:false,qte_stock:0,prix_unit:2,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Eau plate (pack 6x1.5L)",unite:"packs",qte_achetee:5,en_stock:false,qte_stock:0,prix_unit:4,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Sodas",unite:"litres",qte_achetee:8,en_stock:false,qte_stock:0,prix_unit:1.5,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Glace (sacs)",unite:"sacs",qte_achetee:4,en_stock:false,qte_stock:0,prix_unit:3,acheteur_resp:"",statut:"À acheter"},
+  ]},
+  {categorie:"🧻 Consommables",articles:[
+    {nom:"Assiettes carton",unite:"pièces",qte_achetee:80,en_stock:false,qte_stock:0,prix_unit:0.15,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Verres plastique",unite:"pièces",qte_achetee:100,en_stock:false,qte_stock:0,prix_unit:0.1,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Couverts plastique (lot)",unite:"lots",qte_achetee:3,en_stock:false,qte_stock:0,prix_unit:3,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Serviettes papier",unite:"paquets",qte_achetee:4,en_stock:false,qte_stock:0,prix_unit:2,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Sacs poubelle",unite:"rouleaux",qte_achetee:2,en_stock:true,qte_stock:1,prix_unit:4,acheteur_resp:"",statut:"En stock"},
+  ]},
+  {categorie:"🔥 BBQ & Allumage",articles:[
+    {nom:"Charbon de bois",unite:"sacs 10kg",qte_achetee:3,en_stock:false,qte_stock:0,prix_unit:12,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Allume-feu",unite:"boîtes",qte_achetee:2,en_stock:false,qte_stock:0,prix_unit:3,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Briquets / allumettes",unite:"lot",qte_achetee:3,en_stock:true,qte_stock:2,prix_unit:1,acheteur_resp:"",statut:"En stock"},
+    {nom:"Gants de protection BBQ",unite:"paires",qte_achetee:2,en_stock:true,qte_stock:2,prix_unit:8,acheteur_resp:"",statut:"En stock"},
+  ]},
+  {categorie:"🍰 Desserts",articles:[
+    {nom:"Pastèque",unite:"pièces",qte_achetee:2,en_stock:false,qte_stock:0,prix_unit:5,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Fruits de saison",unite:"kg",qte_achetee:3,en_stock:false,qte_stock:0,prix_unit:3,acheteur_resp:"",statut:"À acheter"},
+    {nom:"Gâteaux / biscuits",unite:"paquets",qte_achetee:4,en_stock:false,qte_stock:0,prix_unit:3,acheteur_resp:"",statut:"À acheter"},
+  ]},
+];
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════════════════════
+const fmt = d => d ? new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+const badge = (label, color) => `<span class="badge" style="background:${color}22;color:${color};border:1px solid ${color}44">${label}</span>`;
+const toast = (msg, color='#238636') => {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.background = color;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+};
+const field = (label, html) => `<div class="field"><label class="lbl">${label}</label>${html}</div>`;
+const inp = (id,val='',ph='',type='text') => `<input id="${id}" type="${type}" value="${esc(String(val))}" placeholder="${ph}"/>`;
+const sel = (id,opts,val='') => `<select id="${id}">${opts.map(o=>`<option${o===val?' selected':''}>${o}</option>`).join('')}</select>`;
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const v = id => document.getElementById(id)?.value || '';
+const vn = id => parseFloat(document.getElementById(id)?.value || 0) || 0;
+const vc = id => document.getElementById(id)?.checked || false;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════════════════════
+function showPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  event.target.classList.add('active');
+  if (page==='dashboard') loadDashboard();
+  if (page==='evenements') renderEvents();
+  if (page==='taches') { populateTaskEventSelect(); renderTasks(); }
+  if (page==='materiel') { renderMaterielStats(); renderMateriel(); }
+  if (page==='courses') { populateCourseSelect(); renderArticles(); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LOAD ALL DATA
+// ═══════════════════════════════════════════════════════════════════════════════
+async function loadAll() {
+  const [ev, ta, ma, li, ar] = await Promise.all([
+    sb.from('evenements').select('*').order('date'),
+    sb.from('taches').select('*').order('created_at'),
+    sb.from('materiel').select('*').order('nom'),
+    sb.from('listes_courses').select('*').order('created_at',{ascending:false}),
+    sb.from('articles_courses').select('*').order('created_at'),
+  ]);
+  allEvents = ev.data||[];
+  allTasks = ta.data||[];
+  allMateriel = ma.data||[];
+  allListes = li.data||[];
+  allArticles = ar.data||[];
+  loadDashboard();
+  renderEvents();
+  populateTaskEventSelect();
+  populateCourseSelect();
+  renderMaterielStats();
+  renderMateriel();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════════════
+function loadDashboard() {
+  const now = new Date();
+  const upcoming = allEvents.filter(e=>e.date && new Date(e.date)>=now);
+  const late = allTasks.filter(t=>t.status!=='✅ Fait'&&t.deadline&&new Date(t.deadline)<now);
+  const matSortie = allMateriel.filter(m=>m.etat==='En sortie');
+  const aAcheter = allArticles.filter(a=>a.statut==='À acheter');
+
+  document.getElementById('stat-events').textContent = upcoming.length;
+  document.getElementById('stat-late').textContent = late.length;
+  document.getElementById('stat-materiel').textContent = matSortie.length;
+  document.getElementById('stat-courses').textContent = aAcheter.length;
+
+  // Prochain event
+  const next = upcoming.sort((a,b)=>new Date(a.date)-new Date(b.date))[0];
+  const nextDiv = document.getElementById('dash-next-event');
+  if (next) {
+    const tasks = allTasks.filter(t=>t.event_id===next.id);
+    const done = tasks.filter(t=>t.status==='✅ Fait').length;
+    const pct = tasks.length ? Math.round(done/tasks.length*100) : 0;
+    nextDiv.innerHTML = `<div class="card" style="border-left:4px solid var(--orange)">
+      <div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Prochain événement</div>
+      <div class="flex-between">
+        <div>
+          <div style="font-size:20px;font-weight:700">${esc(next.nom)}</div>
+          <div style="color:var(--muted);font-size:13px;margin-top:4px">📅 ${fmt(next.date)} · 📍 ${esc(next.lieu||'—')} · 👤 ${esc(next.responsable||'—')}</div>
+        </div>
+        <div style="text-align:right;min-width:120px">
+          <div style="font-family:'Bebas Neue',cursive;font-size:28px;color:${pct===100?'var(--green)':'var(--orange)'}">${pct}%</div>
+          <div style="color:var(--muted);font-size:12px">${done}/${tasks.length} tâches</div>
+          <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" style="width:${pct}%;background:${pct===100?'var(--green)':'var(--orange)'}"></div></div>
+        </div>
+      </div>
+    </div>`;
+  } else { nextDiv.innerHTML = ''; }
+
+  // Tasks summary
+  const todo = allTasks.filter(t=>t.status==='À faire').length;
+  const inprog = allTasks.filter(t=>t.status==='En cours').length;
+  const done2 = allTasks.filter(t=>t.status==='✅ Fait').length;
+  document.getElementById('dash-tasks-summary').innerHTML = [
+    ['À faire','#e3b341',todo],['En cours','#58a6ff',inprog],['✅ Fait','#3fb950',done2]
+  ].map(([l,c,n])=>`<div class="flex-between" style="padding:8px 0;border-bottom:1px solid var(--card)">
+    ${badge(l,c)}<span style="font-family:'Bebas Neue',cursive;font-size:20px;color:${c}">${n}</span>
+  </div>`).join('');
+
+  // Late tasks
+  const lateDiv = document.getElementById('dash-late-tasks');
+  if (late.length===0) { lateDiv.innerHTML='<p style="color:var(--green);font-size:14px">✅ Aucune tâche en retard !</p>'; }
+  else { lateDiv.innerHTML = late.slice(0,5).map(t=>`<div style="padding:7px 0;border-bottom:1px solid var(--card)">
+    <div style="font-size:13px;font-weight:600">${esc(t.title)}</div>
+    <div style="font-size:12px;color:var(--red)">⚠ ${fmt(t.deadline)} · ${esc(t.resp||'Non assigné')}</div>
+  </div>`).join(''); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ÉVÉNEMENTS
+// ═══════════════════════════════════════════════════════════════════════════════
+function renderEvents() {
+  const search = v('ev-search').toLowerCase();
+  const filterSt = v('ev-filter-statut');
+  let list = allEvents.filter(e=>{
+    const ms = e.nom.toLowerCase().includes(search);
+    const mst = filterSt==='Tous'||e.statut===filterSt;
+    return ms&&mst;
+  }).sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
+
+  const el = document.getElementById('events-list');
+  if (list.length===0){el.innerHTML='<div class="card" style="text-align:center;color:var(--muted);padding:40px">Aucun événement. Créez-en un !</div>';return;}
+
+  el.innerHTML = list.map(ev=>{
+    const tasks = allTasks.filter(t=>t.event_id===ev.id);
+    const done = tasks.filter(t=>t.status==='✅ Fait').length;
+    const pct = tasks.length?Math.round(done/tasks.length*100):0;
+    const c = statutEvColor[ev.statut]||'#8b949e';
+    return `<div class="card">
+      <div class="flex-between" style="margin-bottom:6px">
+        <span style="font-size:17px;font-weight:700">${esc(ev.nom)}</span>
+        ${badge(ev.statut,c)}
+      </div>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:8px">📅 ${fmt(ev.date)} · 📍 ${esc(ev.lieu||'—')} · 👤 ${esc(ev.responsable||'—')}</div>
+      ${tasks.length>0?`<div style="margin-bottom:8px">
+        <div class="flex-between" style="margin-bottom:3px"><span style="font-size:12px;color:var(--muted)">${done}/${tasks.length} tâches</span><span style="font-size:12px;font-weight:700;color:${pct===100?'var(--green)':'var(--orange)'}">${pct}%</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${pct===100?'var(--green)':'var(--orange)'}"></div></div>
+      </div>`:''}
+      <div class="flex-row" style="margin-top:10px">
+        <button class="btn btn-primary btn-sm" onclick="openEventModal('${ev.id}')">✏️ Modifier</button>
+        <button class="btn btn-ghost btn-sm" onclick="cloneEvent('${ev.id}')">📋 Cloner</button>
+        ${tasks.length===0?`<button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="applyEventTemplate('${ev.id}')">🍖 Template BBQ</button>`:''}
+        <button class="btn btn-danger btn-sm" onclick="deleteEvent('${ev.id}')">🗑 Supprimer</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openEventModal(id=null) {
+  editingId = id;
+  const ev = id ? allEvents.find(e=>e.id===id) : null;
+  showModal(ev?'Modifier l\'événement':'Nouvel événement', `
+    ${field('Nom *', inp('f-nom', ev?.nom||'', 'Ex: Barbecue été 2025'))}
+    <div class="grid-2">
+      ${field('Date', inp('f-date', ev?.date||'', '', 'date'))}
+      ${field('Statut', sel('f-statut',['En préparation','Confirmé','Passé','Annulé'],ev?.statut||'En préparation'))}
+    </div>
+    ${field('Lieu', inp('f-lieu', ev?.lieu||'', 'Ex: Parc municipal'))}
+    ${field('Responsable principal', inp('f-resp', ev?.responsable||'', 'Ex: Marc Rousseau'))}
+    ${field('Description', `<textarea id="f-desc" style="height:70px">${esc(ev?.description||'')}</textarea>`)}
+    <div class="flex-row" style="justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="saveEvent()">💾 Enregistrer</button>
+    </div>
+  `);
+}
+
+async function saveEvent() {
+  const data = {nom:v('f-nom'),date:v('f-date')||null,lieu:v('f-lieu'),responsable:v('f-resp'),description:v('f-desc'),statut:v('f-statut')};
+  if (!data.nom.trim()) return toast('Nom obligatoire','#da3633');
+  if (editingId) { await sb.from('evenements').update(data).eq('id',editingId); }
+  else { await sb.from('evenements').insert(data); }
+  closeModal(); await loadAll(); toast('Événement enregistré ✅');
+}
+
+async function cloneEvent(id) {
+  const ev = allEvents.find(e=>e.id===id);
+  if (!ev) return;
+  const {data:newEv} = await sb.from('evenements').insert({...ev,id:undefined,nom:ev.nom+' (copie)',date:null,statut:'En préparation'}).select().single();
+  const tasks = allTasks.filter(t=>t.event_id===id);
+  if (tasks.length&&newEv) {
+    await sb.from('taches').insert(tasks.map(t=>({...t,id:undefined,event_id:newEv.id,status:'À faire'})));
+  }
+  await loadAll(); toast('Événement cloné ✅');
+}
+
+async function deleteEvent(id) {
+  await sb.from('evenements').delete().eq('id',id);
+  await loadAll(); toast('Événement supprimé','#da3633');
+}
+
+async function applyEventTemplate(id) {
+  const tasks = BARBECUE_TASKS_TPL.flatMap(cat=>cat.items.map(t=>({...t,event_id:id,category:cat.cat,status:'À faire',resp:'',notes:'',deadline:null})));
+  await sb.from('taches').insert(tasks);
+  await loadAll(); toast('Template BBQ appliqué ✅');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TÂCHES
+// ═══════════════════════════════════════════════════════════════════════════════
+function populateTaskEventSelect() {
+  const sel = document.getElementById('task-event-select');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Sélectionner un événement —</option>' +
+    allEvents.map(e=>`<option value="${e.id}"${e.id===cur?' selected':''}>${esc(e.nom)}${e.date?' ('+fmt(e.date)+')':''}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+function onTaskEventChange() {
+  selectedEventId = v('task-event-select');
+  document.getElementById('btn-add-task').disabled = !selectedEventId;
+  document.getElementById('btn-task-template').disabled = !selectedEventId;
+  renderTasks();
+}
+
+function renderTasks() {
+  const evId = v('task-event-select');
+  selectedEventId = evId;
+  const search = v('task-search').toLowerCase();
+  const filterCat = v('task-filter-cat');
+  const filterSt = v('task-filter-st');
+
+  // Update category filter
+  const catSel = document.getElementById('task-filter-cat');
+  if (catSel.options.length<=1) {
+    TASK_CATS.forEach(c=>{ const o=document.createElement('option'); o.textContent=c; catSel.appendChild(o); });
+  }
+
+  const progressDiv = document.getElementById('task-progress');
+  const listDiv = document.getElementById('tasks-list');
+
+  if (!evId) { listDiv.innerHTML='<div class="loader">Sélectionnez un événement</div>'; progressDiv.style.display='none'; return; }
+
+  let tasks = allTasks.filter(t=>t.event_id===evId);
+  const done = tasks.filter(t=>t.status==='✅ Fait').length;
+  const pct = tasks.length?Math.round(done/tasks.length*100):0;
+
+  if (tasks.length>0) {
+    progressDiv.style.display='block';
+    progressDiv.innerHTML=`<div class="flex-between"><span style="color:var(--muted);font-size:13px">${done}/${tasks.length} tâches · <strong style="color:var(--orange)">${pct}%</strong></span><span style="font-size:12px;color:var(--muted)">Progression</span></div>
+    <div class="progress-bar" style="margin-top:7px"><div class="progress-fill" style="width:${pct}%;background:${pct===100?'var(--green)':'var(--orange)'}"></div></div>`;
+  } else { progressDiv.style.display='none'; }
+
+  let filtered = tasks.filter(t=>{
+    const ms=t.title.toLowerCase().includes(search)||(t.resp||'').toLowerCase().includes(search);
+    const mc=filterCat==='Toutes'||t.category===filterCat;
+    const mst=filterSt==='Tous'||t.status===filterSt;
+    return ms&&mc&&mst;
+  });
+
+  if (filtered.length===0){listDiv.innerHTML='<div class="card" style="text-align:center;color:var(--muted);padding:40px">Aucune tâche. Ajoutez-en ou utilisez le template !</div>';return;}
+
+  const now = new Date();
+  const bycat = TASK_CATS.map(cat=>({cat,items:filtered.filter(t=>t.category===cat)})).filter(g=>g.items.length>0);
+  const autres = filtered.filter(t=>!TASK_CATS.includes(t.category));
+  if (autres.length) bycat.push({cat:'Autre',items:autres});
+
+  listDiv.innerHTML = bycat.map(({cat,items})=>`
+    <div style="margin-bottom:20px">
+      <div class="section-title">${esc(cat)}<span style="font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:400">${items.filter(t=>t.status==='✅ Fait').length}/${items.length}</span></div>
+      ${items.map(t=>{
+        const late=t.deadline&&t.status!=='✅ Fait'&&new Date(t.deadline)<now;
+        const sc=taskStatusColor[t.status]||'#8b949e';
+        return `<div class="card" style="padding:12px 14px;margin-bottom:7px;border-left:3px solid ${sc};opacity:${t.status==='✅ Fait'?'.6':'1'}">
+          <div class="flex-between">
+            <div style="flex:1">
+              <div class="flex-row" style="margin-bottom:3px">
+                <span style="font-size:14px;font-weight:600;text-decoration:${t.status==='✅ Fait'?'line-through':'none'}">${esc(t.title)}</span>
+                ${badge(t.priority,prioColor[t.priority]||'#8b949e')}
+              </div>
+              <div style="font-size:12px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap">
+                ${t.resp?`<span>👤 ${esc(t.resp)}</span>`:''}
+                ${t.deadline?`<span style="color:${late?'var(--red)':'var(--muted)'}">${late?'⚠️':'📅'} ${fmt(t.deadline)}</span>`:''}
+                ${t.notes?`<span>📝 ${esc(t.notes.slice(0,50))}${t.notes.length>50?'…':''}</span>`:''}
+              </div>
+            </div>
+            <div class="flex-row">
+              <button onclick="cycleTaskStatus('${t.id}','${t.status}')" style="background:${sc}22;color:${sc};border:1px solid ${sc}44;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">${t.status}</button>
+              <button style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px 5px" onclick="openTaskModal('${t.id}')">✏️</button>
+              <button style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;padding:2px 5px" onclick="deleteTask('${t.id}')">🗑</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `).join('');
+}
+
+function openTaskModal(id=null) {
+  editingId = id;
+  const t = id ? allTasks.find(x=>x.id===id) : null;
+  showModal(id?'Modifier la tâche':'Nouvelle tâche',`
+    ${field('Titre *', inp('f-title',t?.title||'','Ex: Demander autorisation mairie'))}
+    <div class="grid-2">
+      ${field('Catégorie', sel('f-cat',TASK_CATS,t?.category||'Logistique'))}
+      ${field('Priorité', sel('f-prio',PRIORITIES,t?.priority||'🟡 Normale'))}
+    </div>
+    <div class="grid-2">
+      ${field('Responsable', inp('f-resp',t?.resp||'','Ex: Marc'))}
+      ${field('Échéance', inp('f-deadline',t?.deadline||'','','date'))}
+    </div>
+    ${field('Statut', sel('f-status',STATUTS_TACHE,t?.status||'À faire'))}
+    ${field('Notes', `<textarea id="f-notes" style="height:60px">${esc(t?.notes||'')}</textarea>`)}
+    <div class="flex-row" style="justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="saveTask()">💾 Enregistrer</button>
+    </div>
+  `);
+}
+
+async function saveTask() {
+  const data = {title:v('f-title'),category:v('f-cat'),priority:v('f-prio'),resp:v('f-resp'),deadline:v('f-deadline')||null,status:v('f-status'),notes:v('f-notes'),event_id:selectedEventId};
+  if (!data.title.trim()) return toast('Titre obligatoire','#da3633');
+  if (editingId) await sb.from('taches').update(data).eq('id',editingId);
+  else await sb.from('taches').insert(data);
+  closeModal(); await loadAll(); renderTasks(); toast('Tâche enregistrée ✅');
+}
+
+async function cycleTaskStatus(id, current) {
+  const i = STATUTS_TACHE.indexOf(current);
+  const next = STATUTS_TACHE[(i+1)%STATUTS_TACHE.length];
+  await sb.from('taches').update({status:next}).eq('id',id);
+  const t = allTasks.find(x=>x.id===id);
+  if (t) t.status = next;
+  renderTasks(); loadDashboard();
+}
+
+async function deleteTask(id) {
+  await sb.from('taches').delete().eq('id',id);
+  await loadAll(); renderTasks(); toast('Tâche supprimée','#da3633');
+}
+
+async function applyTaskTemplate() {
+  if (!selectedEventId) return;
+  const tasks = BARBECUE_TASKS_TPL.flatMap(cat=>cat.items.map(t=>({...t,event_id:selectedEventId,category:cat.cat,status:'À faire',resp:'',notes:'',deadline:null})));
+  await sb.from('taches').insert(tasks);
+  await loadAll(); renderTasks(); toast('Template BBQ appliqué ✅');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MATÉRIEL
+// ═══════════════════════════════════════════════════════════════════════════════
+function renderMaterielStats() {
+  document.getElementById('materiel-stats').innerHTML = [
+    ['Disponible','var(--green)'],['En sortie','var(--blue)'],['En réparation','var(--yellow)'],['Perdu / HS','var(--red)']
+  ].map(([e,c])=>`<div class="stat-card" style="border-left:3px solid ${c}">
+    <div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">${e}</div>
+    <div style="font-family:'Bebas Neue',cursive;font-size:28px;color:${c}">${allMateriel.filter(m=>m.etat===e).length}</div>
+  </div>`).join('');
+}
+
+function renderMateriel() {
+  const search = v('mat-search').toLowerCase();
+  const filterE = v('mat-filter');
+  const filtered = allMateriel.filter(m=>{
+    const ms=m.nom.toLowerCase().includes(search);
+    const me=filterE==='Tous'||m.etat===filterE;
+    return ms&&me;
+  });
+  const el = document.getElementById('materiel-list');
+  if (filtered.length===0){el.innerHTML='<div style="color:var(--muted);padding:40px;text-align:center">Aucun matériel trouvé.</div>';return;}
+  el.innerHTML = filtered.map(m=>{
+    const ev = allEvents.find(e=>e.id===m.assigne_event);
+    const c = etatColor[m.etat]||'#8b949e';
+    return `<div class="card" style="border-left:3px solid ${c}">
+      <div class="flex-between">
+        <span style="font-weight:700;font-size:14px">${esc(m.nom)}</span>
+        ${badge(m.etat,c)}
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-top:7px;display:flex;flex-direction:column;gap:2px">
+        <span>📦 Qté : <strong style="color:var(--text)">${m.qte}</strong></span>
+        ${m.assigne_personne?`<span>👤 ${esc(m.assigne_personne)}</span>`:''}
+        ${ev?`<span>📅 <span style="color:var(--orange)">${esc(ev.nom)}</span></span>`:''}
+        ${m.notes?`<span>📝 ${esc(m.notes)}</span>`:''}
+      </div>
+      <div class="flex-row" style="margin-top:10px">
+        <button class="btn btn-ghost btn-sm" onclick="openMaterielModal('${m.id}')">✏️ Modifier</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteMateriel('${m.id}')">🗑 Supprimer</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openMaterielModal(id=null) {
+  editingId = id;
+  const m = id ? allMateriel.find(x=>x.id===id) : null;
+  showModal(id?'Modifier le matériel':'Nouveau matériel',`
+    ${field('Nom *', inp('f-nom',m?.nom||'','Ex: Barnum 3x3m'))}
+    <div class="grid-2">
+      ${field('Quantité', `<input id="f-qte" type="number" min="1" value="${m?.qte||1}"/>`)}
+      ${field('État', sel('f-etat',ETAT_MAT,m?.etat||'Disponible'))}
+    </div>
+    ${field('Assigné à un événement', `<select id="f-event"><option value="">— Aucun —</option>${allEvents.map(e=>`<option value="${e.id}"${e.id===m?.assigne_event?' selected':''}>${esc(e.nom)}</option>`).join('')}</select>`)}
+    ${field('Responsable', inp('f-personne',m?.assigne_personne||'','Ex: Marc Rousseau'))}
+    ${field('Notes', `<textarea id="f-notes" style="height:55px">${esc(m?.notes||'')}</textarea>`)}
+    <div class="flex-row" style="justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="saveMateriel()">💾 Enregistrer</button>
+    </div>
+  `);
+}
+
+async function saveMateriel() {
+  const data = {nom:v('f-nom'),qte:parseInt(v('f-qte'))||1,etat:v('f-etat'),assigne_event:v('f-event')||null,assigne_personne:v('f-personne'),notes:v('f-notes')};
+  if (!data.nom.trim()) return toast('Nom obligatoire','#da3633');
+  if (editingId) await sb.from('materiel').update(data).eq('id',editingId);
+  else await sb.from('materiel').insert(data);
+  closeModal(); await loadAll(); renderMaterielStats(); renderMateriel(); toast('Matériel enregistré ✅');
+}
+
+async function deleteMateriel(id) {
+  await sb.from('materiel').delete().eq('id',id);
+  await loadAll(); renderMaterielStats(); renderMateriel(); toast('Matériel supprimé','#da3633');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COURSES
+// ═══════════════════════════════════════════════════════════════════════════════
+function populateCourseSelect() {
+  const sel = document.getElementById('course-select');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Sélectionner —</option>' +
+    allListes.map(l=>`<option value="${l.id}"${l.id===cur?' selected':''}>${esc(l.event_nom)}${l.date?' · '+new Date(l.date).toLocaleDateString('fr-FR'):''}${l.participants?' · '+l.participants+' pers.':''}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+function onCourseListeChange() {
+  selectedListeId = v('course-select');
+  document.getElementById('course-actions').style.display = selectedListeId ? 'flex' : 'none';
+  document.getElementById('course-stats').style.display = selectedListeId ? 'grid' : 'none';
+  document.getElementById('course-filters').style.display = selectedListeId ? 'flex' : 'none';
+
+  // Populate category filter
+  const catSel = document.getElementById('course-filter-cat');
+  if (catSel.options.length<=1) {
+    COURSE_CATS.forEach(c=>{ const o=document.createElement('option'); o.textContent=c; catSel.appendChild(o); });
+  }
+  renderArticles();
+}
+
+function renderArticles() {
+  if (!selectedListeId) return;
+  const arts = allArticles.filter(a=>a.liste_id===selectedListeId);
+  const search = v('course-search').toLowerCase();
+  const filterCat = v('course-filter-cat');
+  const filterSt = v('course-filter-st');
+
+  // Stats
+  const aAcheter=arts.filter(a=>a.statut==='À acheter').length;
+  const enStock=arts.filter(a=>a.statut==='En stock').length;
+  const achetes=arts.filter(a=>a.statut==='Acheté ✅').length;
+  const budget=arts.reduce((s,a)=>s+(a.prix_unit||0)*(a.qte_achetee||0),0);
+  const budgetRest=arts.filter(a=>a.statut==='À acheter').reduce((s,a)=>s+(a.prix_unit||0)*(a.qte_achetee||0),0);
+
+  document.getElementById('course-stats').innerHTML = [
+    ['À acheter',aAcheter,'var(--yellow)'],['En stock',enStock,'var(--green)'],
+    ['Acheté ✅',achetes,'var(--blue)'],['Budget restant',budgetRest.toFixed(2)+' €','var(--orange)']
+  ].map(([l,v,c])=>`<div class="stat-card" style="border-left:3px solid ${c}">
+    <div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">${l}</div>
+    <div style="font-family:'Bebas Neue',cursive;font-size:24px;color:${c}">${v}</div>
+  </div>`).join('');
+
+  const filtered = arts.filter(a=>{
+    const ms=a.nom.toLowerCase().includes(search)||(a.acheteur_resp||'').toLowerCase().includes(search);
+    const mc=filterCat==='Toutes'||a.categorie===filterCat;
+    const mst=filterSt==='Tous'||a.statut===filterSt;
+    return ms&&mc&&mst;
+  });
+
+  const bycat = COURSE_CATS.map(cat=>({cat,items:filtered.filter(a=>a.categorie===cat)})).filter(g=>g.items.length>0);
+  const autres = filtered.filter(a=>!COURSE_CATS.includes(a.categorie));
+  if (autres.length) bycat.push({cat:'📦 Autre',items:autres});
+
+  const listEl = document.getElementById('courses-list');
+  if (filtered.length===0) { listEl.innerHTML='<div class="card" style="text-align:center;color:var(--muted);padding:40px">Aucun article. Ajoutez-en ou utilisez le template BBQ !</div>'; }
+  else {
+    listEl.innerHTML = bycat.map(({cat,items})=>`
+      <div style="margin-bottom:18px">
+        <div class="section-title">${esc(cat)}<span style="font-size:12px;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:400">${items.filter(a=>a.statut==='Acheté ✅').length}/${items.length}</span></div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr>
+              <th style="text-align:left">Article</th>
+              <th style="text-align:center">Qté</th><th>Unité</th>
+              <th>Stock</th><th style="text-align:right">Prix u.</th>
+              <th style="text-align:right">Total</th><th>Acheteur</th>
+              <th style="text-align:center">Statut</th><th></th>
+            </tr></thead>
+            <tbody>
+              ${items.map(a=>{
+                const sc=courseStatusColor[a.statut]||'#8b949e';
+                const crossed=a.statut==='Acheté ✅';
+                const faded=a.statut==='Non nécessaire';
+                return `<tr style="opacity:${faded?.45:1};background:${crossed?'#0a1f0a':'transparent'}">
+                  <td style="font-weight:600;text-decoration:${crossed?'line-through':'none'}">${esc(a.nom)}${a.notes?`<div style="font-size:11px;color:var(--muted);font-weight:400">${esc(a.notes)}</div>`:''}</td>
+                  <td style="text-align:center;font-family:'Bebas Neue',cursive;font-size:19px;color:var(--orange)">${a.qte_achetee}</td>
+                  <td style="color:var(--muted);font-size:12px">${esc(a.unite||'')}</td>
+                  <td>${a.en_stock?`<span style="color:var(--green);font-weight:700">✓ ${a.qte_stock} ${esc(a.unite||'')}</span>`:'<span style="color:var(--border)">—</span>'}</td>
+                  <td style="text-align:right;color:var(--muted)">${a.prix_unit?a.prix_unit.toFixed(2)+' €':'—'}</td>
+                  <td style="text-align:right;font-weight:600">${a.prix_unit?(a.prix_unit*a.qte_achetee).toFixed(2)+' €':'—'}</td>
+                  <td style="color:var(--muted);font-size:12px">${esc(a.acheteur_resp||'')}</td>
+                  <td style="text-align:center"><button onclick="cycleArticleStatus('${a.id}','${a.statut}')" style="background:${sc}22;color:${sc};border:1px solid ${sc}44;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">${a.statut}</button></td>
+                  <td><div style="display:flex;gap:3px">
+                    <button style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:1px 3px" onclick="openArticleModal('${a.id}')">✏️</button>
+                    <button style="background:none;border:none;cursor:pointer;color:var(--red);font-size:13px;padding:1px 3px" onclick="deleteArticle('${a.id}')">🗑</button>
+                  </div></td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Budget total
+  document.getElementById('course-budget-total').innerHTML = arts.length>0 ? `
+    <div class="card" style="border-left:4px solid var(--orange);display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+      <span style="color:var(--muted);font-size:13px">${arts.length} articles · ${arts.filter(a=>a.en_stock).length} en stock</span>
+      <span style="font-family:'Bebas Neue',cursive;font-size:30px;color:var(--orange)">${budget.toFixed(2)} €</span>
+    </div>` : '';
+}
+
+function openListeModal(isEdit=false) {
+  const l = isEdit ? allListes.find(x=>x.id===selectedListeId) : null;
+  showModal(isEdit?'Modifier la liste':'Nouvelle liste de courses',`
+    ${field('Événement *', inp('f-nom',l?.event_nom||'','Ex: Barbecue été 2025'))}
+    <div class="grid-2">
+      ${field('Date', inp('f-date',l?.date||'','','date'))}
+      ${field('Participants', `<input id="f-part" type="number" value="${l?.participants||''}" placeholder="Ex: 50"/>`)}
+    </div>
+    ${field('Notes', `<textarea id="f-notes" style="height:55px">${esc(l?.notes||'')}</textarea>`)}
+    <div class="flex-row" style="justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="saveListe(${isEdit})">💾 Enregistrer</button>
+    </div>
+  `);
+}
+
+function editListe() { openListeModal(true); }
+
+async function saveListe(isEdit=false) {
+  const data = {event_nom:v('f-nom'),date:v('f-date')||null,participants:parseInt(v('f-part'))||null,notes:v('f-notes')};
+  if (!data.event_nom.trim()) return toast('Nom obligatoire','#da3633');
+  if (isEdit) { await sb.from('listes_courses').update(data).eq('id',selectedListeId); }
+  else {
+    const {data:nl} = await sb.from('listes_courses').insert(data).select().single();
+    selectedListeId = nl.id;
+  }
+  closeModal(); await loadAll(); populateCourseSelect();
+  document.getElementById('course-select').value = selectedListeId;
+  onCourseListeChange(); toast('Liste enregistrée ✅');
+}
+
+async function deleteListe() {
+  await sb.from('listes_courses').delete().eq('id',selectedListeId);
+  selectedListeId = null;
+  document.getElementById('course-select').value = '';
+  document.getElementById('course-actions').style.display='none';
+  document.getElementById('course-stats').style.display='none';
+  document.getElementById('course-filters').style.display='none';
+  document.getElementById('courses-list').innerHTML='<div class="loader" style="padding:50px;text-align:center;color:var(--muted)">Créez ou sélectionnez une liste de courses.</div>';
+  document.getElementById('course-budget-total').innerHTML='';
+  await loadAll(); populateCourseSelect(); toast('Liste supprimée','#da3633');
+}
+
+async function applyCoursesTemplate() {
+  if (!selectedListeId) return;
+  const articles = COURSES_TPL.flatMap(cat=>cat.articles.map(a=>({...a,liste_id:selectedListeId})));
+  await sb.from('articles_courses').insert(articles);
+  await loadAll(); renderArticles(); toast('Template BBQ appliqué ✅');
+}
+
+function openArticleModal(id=null) {
+  editingId = id;
+  const a = id ? allArticles.find(x=>x.id===id) : null;
+  showModal(id?'Modifier l\'article':'Nouvel article',`
+    ${field('Article *', inp('f-nom',a?.nom||'','Ex: Merguez'))}
+    <div class="grid-2">
+      ${field('Catégorie', sel('f-cat',COURSE_CATS,a?.categorie||'📦 Autre'))}
+      ${field('Statut', sel('f-statut',STATUTS_COURSE,a?.statut||'À acheter'))}
+    </div>
+    <div class="grid-2">
+      ${field('Quantité', `<input id="f-qte" type="number" min="0" step=".5" value="${a?.qte_achetee||1}"/>`)}
+      ${field('Unité', inp('f-unite',a?.unite||'pièces','kg, pièces, litres…'))}
+    </div>
+    <div class="card" style="padding:12px 14px;margin-bottom:12px">
+      <div class="flex-row" style="margin-bottom:8px">
+        <input type="checkbox" id="f-enstock" ${a?.en_stock?'checked':''} style="width:15px;height:15px;accent-color:var(--green)"/>
+        <label for="f-enstock" class="lbl" style="margin:0;color:var(--green);cursor:pointer">✅ Disponible au local / stock asso</label>
+      </div>
+      ${field('Quantité en stock', `<input id="f-qtestock" type="number" min="0" step=".5" value="${a?.qte_stock||0}"/>`)}
+    </div>
+    <div class="grid-2">
+      ${field('Prix unitaire (€)', `<input id="f-prix" type="number" min="0" step=".01" value="${a?.prix_unit||''}" placeholder="Ex: 8.50"/>`)}
+      ${field('Responsable achat', inp('f-acheteur',a?.acheteur_resp||'','Ex: Claire'))}
+    </div>
+    ${field('Notes', inp('f-notes',a?.notes||'','Marque, précision…'))}
+    <div class="flex-row" style="justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="saveArticle()">💾 Enregistrer</button>
+    </div>
+  `);
+}
+
+async function saveArticle() {
+  const data = {
+    nom:v('f-nom'), categorie:v('f-cat'), statut:v('f-statut'),
+    qte_achetee:parseFloat(v('f-qte'))||1, unite:v('f-unite'),
+    en_stock:document.getElementById('f-enstock')?.checked||false,
+    qte_stock:parseFloat(v('f-qtestock'))||0,
+    prix_unit:parseFloat(v('f-prix'))||0,
+    acheteur_resp:v('f-acheteur'), notes:v('f-notes'),
+    liste_id:selectedListeId
+  };
+  if (!data.nom.trim()) return toast('Nom obligatoire','#da3633');
+  if (editingId) await sb.from('articles_courses').update(data).eq('id',editingId);
+  else await sb.from('articles_courses').insert(data);
+  closeModal(); await loadAll(); renderArticles(); toast('Article enregistré ✅');
+}
+
+async function cycleArticleStatus(id, current) {
+  const i = STATUTS_COURSE.indexOf(current);
+  const next = STATUTS_COURSE[(i+1)%STATUTS_COURSE.length];
+  await sb.from('articles_courses').update({statut:next}).eq('id',id);
+  const a = allArticles.find(x=>x.id===id);
+  if (a) a.statut = next;
+  renderArticles(); loadDashboard();
+}
+
+async function deleteArticle(id) {
+  await sb.from('articles_courses').delete().eq('id',id);
+  await loadAll(); renderArticles(); toast('Article supprimé','#da3633');
+}
+
+function openHistoModal() {
+  const content = allListes.length===0
+    ? '<p style="color:#555">Aucune liste enregistrée.</p>'
+    : allListes.map(l=>{
+        const arts = allArticles.filter(a=>a.liste_id===l.id);
+        const budget = arts.reduce((s,a)=>s+(a.prix_unit||0)*(a.qte_achetee||0),0);
+        return `<div class="card" style="padding:12px 14px">
+          <div style="font-weight:700;margin-bottom:3px">${esc(l.event_nom)}${l.date?' · '+new Date(l.date).toLocaleDateString('fr-FR'):''}</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:7px">${l.participants?'👥 '+l.participants+' pers. · ':''}${arts.length} articles · ${budget.toFixed(2)} €</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px">
+            ${arts.slice(0,10).map(a=>`<span style="background:var(--card);border-radius:5px;padding:2px 7px;font-size:11px;color:var(--muted)">${esc(a.nom)} : <strong style="color:var(--text)">${a.qte_achetee} ${esc(a.unite||'')}</strong></span>`).join('')}
+            ${arts.length>10?`<span style="font-size:11px;color:#555">+${arts.length-10} autres…</span>`:''}
+          </div>
+        </div>`;
+      }).join('');
+  showModal('📊 Historique des quantités', `<p style="color:var(--muted);font-size:13px;margin-top:0;margin-bottom:14px">Comparez d'une année sur l'autre pour affiner vos prévisions.</p>${content}`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// IMPRESSION
+// ═══════════════════════════════════════════════════════════════════════════════
+function openPrintView() {
+  if (!selectedListeId) return;
+  const liste = allListes.find(l=>l.id===selectedListeId);
+  const arts = allArticles.filter(a=>a.liste_id===selectedListeId);
+  const budget = arts.reduce((s,a)=>s+(a.prix_unit||0)*(a.qte_achetee||0),0);
+  const cats = [...new Set(arts.map(a=>a.categorie))];
+  const today = new Date().toLocaleDateString('fr-FR');
+
+  document.getElementById('print-body').innerHTML = `
+    <h1 style="font-size:20px;color:#c2410c;margin-bottom:6px">🛒 Liste de courses — ${esc(liste.event_nom)}</h1>
+    <div style="color:#6b7280;font-size:12px;margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid #e5e7eb">
+      ${liste.participants?`👥 <strong>${liste.participants}</strong> participants &nbsp;·&nbsp; `:''}
+      📅 ${today} &nbsp;·&nbsp; 💰 Budget estimé : <strong style="color:#c2410c">${budget.toFixed(2)} €</strong>
+    </div>
+    ${cats.map(cat=>{
+      const items = arts.filter(a=>a.categorie===cat);
+      return `<div style="margin-bottom:16px">
+        <div style="background:#f3f4f6;padding:4px 10px;border-radius:4px;border-left:3px solid #f97316;font-weight:700;font-size:13px;margin-bottom:6px">${esc(cat)}</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:#e5e7eb;font-size:10px;text-transform:uppercase;letter-spacing:.5px">
+            <th style="width:22px;padding:4px 6px;text-align:center">✓</th>
+            <th style="padding:4px 6px;text-align:left">Article</th>
+            <th style="width:40px;padding:4px 6px;text-align:center">Qté</th>
+            <th style="width:55px;padding:4px 6px">Unité</th>
+            <th style="width:80px;padding:4px 6px">Stock</th>
+            <th style="width:55px;padding:4px 6px;text-align:right">Prix u.</th>
+            <th style="width:65px;padding:4px 6px;text-align:right">Total</th>
+            <th style="width:85px;padding:4px 6px">Acheteur</th>
+          </tr></thead>
+          <tbody>
+            ${items.map(a=>`<tr style="border-bottom:1px solid #f3f4f6">
+              <td style="padding:5px 6px;text-align:center"><span style="width:13px;height:13px;border:1.5px solid #9ca3af;display:inline-block;border-radius:2px"></span></td>
+              <td style="padding:5px 6px;font-weight:600">${esc(a.nom)}${a.notes?`<div style="font-size:10px;color:#9ca3af;font-weight:400">${esc(a.notes)}</div>`:''}</td>
+              <td style="padding:5px 6px;text-align:center;font-weight:700;font-size:15px">${a.qte_achetee}</td>
+              <td style="padding:5px 6px;color:#6b7280">${esc(a.unite||'')}</td>
+              <td style="padding:5px 6px;color:${a.en_stock?'#16a34a':'#d1d5db'};font-weight:${a.en_stock?700:400}">${a.en_stock?`✓ ${a.qte_stock} ${esc(a.unite||'')}`:'—'}</td>
+              <td style="padding:5px 6px;text-align:right;color:#6b7280">${a.prix_unit?a.prix_unit.toFixed(2)+' €':'—'}</td>
+              <td style="padding:5px 6px;text-align:right;font-weight:600">${a.prix_unit?(a.prix_unit*a.qte_achetee).toFixed(2)+' €':'—'}</td>
+              <td style="padding:5px 6px;color:#374151">${esc(a.acheteur_resp||'')}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    }).join('')}
+    <div style="margin-top:16px;padding:10px 14px;background:#fff7ed;border:2px solid #f97316;border-radius:6px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:#6b7280">${arts.length} articles · ${arts.filter(a=>a.en_stock).length} en stock</span>
+      <strong style="font-size:18px;color:#c2410c">Total : ${budget.toFixed(2)} €</strong>
+    </div>
+    <div style="margin-top:12px;font-size:10px;color:#9ca3af;text-align:center">Généré par AssoMgr · ${today}</div>
+  `;
+  document.getElementById('print-overlay').style.display = 'block';
+}
+
+function closePrint() { document.getElementById('print-overlay').style.display = 'none'; }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════════════════════════════
+function showModal(title, body) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = body;
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; editingId = null; }
+function closeModalOnOverlay(e) { if (e.target===document.getElementById('modal-overlay')) closeModal(); }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════════
+loadAll();
+</script>
+</body>
+</html>
