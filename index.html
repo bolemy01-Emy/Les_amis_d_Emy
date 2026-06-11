@@ -426,18 +426,28 @@ function showPage(page) {
 // LOAD ALL DATA
 // ═══════════════════════════════════════════════════════════════════════════════
 async function loadAll() {
-  const [ev, ta, ma, li, ar] = await Promise.all([
-    sb.from('evenements').select('*').order('date'),
-    sb.from('taches').select('*').order('created_at'),
-    sb.from('materiel').select('*').order('nom'),
-    sb.from('listes_courses').select('*').order('created_at',{ascending:false}),
-    sb.from('articles_courses').select('*').order('created_at'),
-  ]);
-  allEvents = ev.data||[];
-  allTasks = ta.data||[];
-  allMateriel = ma.data||[];
-  allListes = li.data||[];
-  allArticles = ar.data||[];
+  try {
+    const [ev, ta, ma, li, ar] = await Promise.all([
+      sb.from('evenements').select('*').order('date', {ascending: true, nullsFirst: false}),
+      sb.from('taches').select('*').order('created_at'),
+      sb.from('materiel').select('*').order('nom'),
+      sb.from('listes_courses').select('*').order('created_at',{ascending:false}),
+      sb.from('articles_courses').select('*').order('created_at'),
+    ]);
+    if (ev.error) console.error('evenements:', ev.error);
+    if (ta.error) console.error('taches:', ta.error);
+    if (ma.error) console.error('materiel:', ma.error);
+    if (li.error) console.error('listes_courses:', li.error);
+    if (ar.error) console.error('articles_courses:', ar.error);
+    allEvents = ev.data||[];
+    allTasks = ta.data||[];
+    allMateriel = ma.data||[];
+    allListes = li.data||[];
+    allArticles = ar.data||[];
+  } catch(e) {
+    console.error('loadAll exception:', e);
+    toast('Erreur de connexion Supabase','#da3633');
+  }
   loadDashboard();
   renderEvents();
   populateTaskEventSelect();
