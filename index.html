@@ -565,8 +565,10 @@ function openEventModal(id=null) {
 async function saveEvent() {
   const data = {nom:v('f-nom'),date:v('f-date')||null,lieu:v('f-lieu'),responsable:v('f-resp'),description:v('f-desc'),statut:v('f-statut')};
   if (!data.nom.trim()) return toast('Nom obligatoire','#da3633');
-  if (editingId) { await sb.from('evenements').update(data).eq('id',editingId); }
-  else { await sb.from('evenements').insert(data); }
+  let err;
+  if (editingId) { const r = await sb.from('evenements').update(data).eq('id',editingId); err=r.error; }
+  else { const r = await sb.from('evenements').insert(data); err=r.error; }
+  if (err) { toast('Erreur : '+err.message,'#da3633'); console.error('saveEvent error:',err); return; }
   closeModal(); await loadAll(); toast('Événement enregistré ✅');
 }
 
@@ -717,8 +719,10 @@ function openTaskModal(id=null) {
 async function saveTask() {
   const data = {title:v('f-title'),category:v('f-cat'),priority:v('f-prio'),resp:v('f-resp'),deadline:v('f-deadline')||null,status:v('f-status'),notes:v('f-notes'),event_id:selectedEventId};
   if (!data.title.trim()) return toast('Titre obligatoire','#da3633');
-  if (editingId) await sb.from('taches').update(data).eq('id',editingId);
-  else await sb.from('taches').insert(data);
+  let err2;
+  if (editingId) { const r=await sb.from('taches').update(data).eq('id',editingId); err2=r.error; }
+  else { const r=await sb.from('taches').insert(data); err2=r.error; }
+  if (err2) { toast('Erreur : '+err2.message,'#da3633'); console.error('saveTask:',err2); return; }
   closeModal(); await loadAll(); renderTasks(); toast('Tâche enregistrée ✅');
 }
 
@@ -819,8 +823,10 @@ function openMaterielModal(id=null) {
 async function saveMateriel() {
   const data = {nom:v('f-nom'),qte:parseInt(v('f-qte'))||1,etat:v('f-etat'),assigne_event:v('f-event')||null,assigne_personne:v('f-personne'),notes:v('f-notes')};
   if (!data.nom.trim()) return toast('Nom obligatoire','#da3633');
-  if (editingId) await sb.from('materiel').update(data).eq('id',editingId);
-  else await sb.from('materiel').insert(data);
+  let err3;
+  if (editingId) { const r=await sb.from('materiel').update(data).eq('id',editingId); err3=r.error; }
+  else { const r=await sb.from('materiel').insert(data); err3=r.error; }
+  if (err3) { toast('Erreur : '+err3.message,'#da3633'); console.error('saveMateriel:',err3); return; }
   closeModal(); await loadAll(); renderMaterielStats(); renderMateriel(); toast('Matériel enregistré ✅');
 }
 
@@ -1040,8 +1046,10 @@ async function saveArticle() {
     liste_id:selectedListeId
   };
   if (!data.nom.trim()) return toast('Nom obligatoire','#da3633');
-  if (editingId) await sb.from('articles_courses').update(data).eq('id',editingId);
-  else await sb.from('articles_courses').insert(data);
+  let err4;
+  if (editingId) { const r=await sb.from('articles_courses').update(data).eq('id',editingId); err4=r.error; }
+  else { const r=await sb.from('articles_courses').insert(data); err4=r.error; }
+  if (err4) { toast('Erreur : '+err4.message,'#da3633'); console.error('saveArticle:',err4); return; }
   closeModal(); await loadAll(); renderArticles(); toast('Article enregistré ✅');
 }
 
