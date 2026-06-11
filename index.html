@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Les Amis d'Emy</title>
+<title>AssoMgr</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -82,7 +82,7 @@ td{padding:7px 7px;border-bottom:1px solid var(--card);vertical-align:middle}
 <body>
 
 <nav>
-  <div class="logo">Les Amis d'Emy</div>
+  <div class="logo">ASSO MGR</div>
   <button class="nav-btn active" onclick="showPage('dashboard')">🏠 Dashboard</button>
   <button class="nav-btn" onclick="showPage('evenements')">📅 Événements</button>
   <button class="nav-btn" onclick="showPage('taches')">✅ Tâches</button>
@@ -586,10 +586,19 @@ async function deleteEvent(id) {
   await loadAll(); toast('Événement supprimé','#da3633');
 }
 
-async function applyEventTemplate(id) {
+function applyEventTemplate(id) {
+  showModal('🍖 Appliquer le template BBQ ?', `
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Cela va ajouter <strong style="color:var(--text)">28 tâches préconfigurées</strong> à cet événement.<br>Les tâches existantes seront conservées.</p>
+    <div class="flex-row" style="justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="confirmApplyEventTemplate('${id}')">✅ Confirmer</button>
+    </div>
+  `);
+}
+async function confirmApplyEventTemplate(id) {
   const tasks = BARBECUE_TASKS_TPL.flatMap(cat=>cat.items.map(t=>({...t,event_id:id,category:cat.cat,status:'À faire',resp:'',notes:'',deadline:null})));
   await sb.from('taches').insert(tasks);
-  await loadAll(); toast('Template BBQ appliqué ✅');
+  closeModal(); await loadAll(); toast('Template BBQ appliqué ✅');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -727,11 +736,21 @@ async function deleteTask(id) {
   await loadAll(); renderTasks(); toast('Tâche supprimée','#da3633');
 }
 
-async function applyTaskTemplate() {
+function applyTaskTemplate() {
+  if (!selectedEventId) return;
+  showModal('🍖 Appliquer le template BBQ ?', `
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Cela va ajouter <strong style="color:var(--text)">28 tâches préconfigurées</strong> à cet événement.<br>Les tâches existantes seront conservées.</p>
+    <div class="flex-row" style="justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="confirmApplyTaskTemplate()">✅ Confirmer</button>
+    </div>
+  `);
+}
+async function confirmApplyTaskTemplate() {
   if (!selectedEventId) return;
   const tasks = BARBECUE_TASKS_TPL.flatMap(cat=>cat.items.map(t=>({...t,event_id:selectedEventId,category:cat.cat,status:'À faire',resp:'',notes:'',deadline:null})));
   await sb.from('taches').insert(tasks);
-  await loadAll(); renderTasks(); toast('Template BBQ appliqué ✅');
+  closeModal(); await loadAll(); renderTasks(); toast('Template BBQ appliqué ✅');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -961,11 +980,21 @@ async function deleteListe() {
   await loadAll(); populateCourseSelect(); toast('Liste supprimée','#da3633');
 }
 
-async function applyCoursesTemplate() {
+function applyCoursesTemplate() {
+  if (!selectedListeId) return;
+  showModal('🍖 Appliquer le template BBQ ?', `
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Cela va ajouter <strong style="color:var(--text)">35+ articles préconfigurés</strong> à cette liste.<br>Les articles existants seront conservés.</p>
+    <div class="flex-row" style="justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="confirmApplyCoursesTemplate()">✅ Confirmer</button>
+    </div>
+  `);
+}
+async function confirmApplyCoursesTemplate() {
   if (!selectedListeId) return;
   const articles = COURSES_TPL.flatMap(cat=>cat.articles.map(a=>({...a,liste_id:selectedListeId})));
   await sb.from('articles_courses').insert(articles);
-  await loadAll(); renderArticles(); toast('Template BBQ appliqué ✅');
+  closeModal(); await loadAll(); renderArticles(); toast('Template BBQ appliqué ✅');
 }
 
 function openArticleModal(id=null) {
