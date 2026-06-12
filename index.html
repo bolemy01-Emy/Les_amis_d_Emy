@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>AssoMgr</title>
+<title>Les Amis d'Emy</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -82,7 +82,7 @@ td{padding:7px 7px;border-bottom:1px solid var(--card);vertical-align:middle}
 <body>
 
 <nav>
-  <div class="logo">ASSO MGR</div>
+  <div class="logo">Les Amis d'Emy</div>
   <button class="nav-btn active" onclick="showPage('dashboard')">🏠 Dashboard</button>
   <button class="nav-btn" onclick="showPage('evenements')">📅 Événements</button>
   <button class="nav-btn" onclick="showPage('taches')">✅ Tâches</button>
@@ -547,6 +547,7 @@ function renderEvents() {
         <button class="btn btn-primary btn-sm" onclick="openEventModal('${ev.id}')">✏️ Modifier</button>
         <button class="btn btn-ghost btn-sm" onclick="cloneEvent('${ev.id}')">📋 Cloner</button>
         ${tasks.length===0?`<button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="applyEventTemplate('${ev.id}')">🍖 Template BBQ</button>`:''}
+        <button class="btn btn-blue btn-sm" onclick="printEvent('${ev.id}')">🖨️ Imprimer</button>
         <button class="btn btn-danger btn-sm" onclick="deleteEvent('${ev.id}')">🗑 Supprimer</button>
       </div>
     </div>`;
@@ -593,9 +594,21 @@ async function cloneEvent(id) {
   await loadAll(); toast('Événement cloné ✅');
 }
 
-async function deleteEvent(id) {
+function deleteEvent(id) {
+  const ev = allEvents.find(e=>e.id===id);
+  const tasks = allTasks.filter(t=>t.event_id===id);
+  showModal('🗑 Supprimer cet événement ?', `
+    <p style="color:var(--muted);font-size:14px;margin-bottom:6px">Événement : <strong style="color:var(--text)">${esc(ev?.nom||'')}</strong></p>
+    ${tasks.length>0?`<p style="color:var(--red);font-size:13px;margin-bottom:16px">⚠️ ${tasks.length} tâche(s) associée(s) seront également supprimées.</p>`:'<p style="color:var(--muted);font-size:13px;margin-bottom:16px">Cette action est irréversible.</p>'}
+    <div class="flex-row" style="justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-danger" onclick="confirmDeleteEvent('${id}')">🗑 Supprimer définitivement</button>
+    </div>
+  `);
+}
+async function confirmDeleteEvent(id) {
   await sb.from('evenements').delete().eq('id',id);
-  await loadAll(); toast('Événement supprimé','#da3633');
+  closeModal(); await loadAll(); toast('Événement supprimé','#da3633');
 }
 
 function applyEventTemplate(id) {
@@ -611,6 +624,126 @@ async function confirmApplyEventTemplate(id) {
   const tasks = BARBECUE_TASKS_TPL.flatMap(cat=>cat.items.map(t=>({...t,event_id:id,category:cat.cat,status:'À faire',resp:'',notes:'',deadline:null})));
   await sb.from('taches').insert(tasks);
   closeModal(); await loadAll(); toast('Template BBQ appliqué ✅');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// IMPRESSION ÉVÉNEMENT
+// ═══════════════════════════════════════════════════════════════════════════════
+function printEvent(id) {
+  const ev = allEvents.find(e=>e.id===id);
+  if (!ev) return;
+  const tasks = allTasks.filter(t=>t.event_id===id);
+  const mat = allMateriel.filter(m=>m.assigne_event===id);
+  const listes = allListes.filter(l=>l.event_nom===ev.nom);
+  const arts = listes.flatMap(l=>allArticles.filter(a=>a.liste_id===l.id));
+  const today = new Date().toLocaleDateString('fr-FR');
+  const statutColor = {"En préparation":"#d97706","Confirmé":"#16a34a","Passé":"#6b7280","Annulé":"#dc2626"};
+  const done = tasks.filter(t=>t.status==='✅ Fait').length;
+  const pct = tasks.length ? Math.round(done/tasks.length*100) : 0;
+  const budget = arts.reduce((s,a)=>s+(a.prix_unit||0)*(a.qte_achetee||0),0);
+
+  // Grouper tâches par catégorie
+  const taskCats = [...new Set(tasks.map(t=>t.category||'Autre'))];
+
+  document.getElementById('print-body').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+      <div>
+        <h1 style="font-size:22px;color:#c2410c;margin-bottom:4px">${esc(ev.nom)}</h1>
+        <div style="color:#6b7280;font-size:12px">
+          📅 ${fmt(ev.date)} &nbsp;·&nbsp; 📍 ${esc(ev.lieu||'—')} &nbsp;·&nbsp; 👤 ${esc(ev.responsable||'—')}
+          &nbsp;·&nbsp; <span style="color:${statutColor[ev.statut]||'#6b7280'};font-weight:700">${esc(ev.statut)}</span>
+        </div>
+        ${ev.description?`<div style="font-size:12px;color:#6b7280;margin-top:4px;font-style:italic">${esc(ev.description)}</div>`:''}
+      </div>
+      <div style="text-align:right;min-width:100px">
+        <div style="font-size:28px;font-weight:900;color:${pct===100?'#16a34a':'#f97316'}">${pct}%</div>
+        <div style="font-size:11px;color:#6b7280">${done}/${tasks.length} tâches</div>
+      </div>
+    </div>
+    <div style="color:#6b7280;font-size:11px;margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid #e5e7eb">
+      Imprimé le ${today}
+    </div>
+
+    ${tasks.length>0?`
+    <h2 style="font-size:15px;color:#c2410c;margin:0 0 10px;border-bottom:2px solid #f97316;padding-bottom:4px">✅ Tâches & Checklist</h2>
+    ${taskCats.map(cat=>{
+      const items = tasks.filter(t=>(t.category||'Autre')===cat);
+      return `<div style="margin-bottom:14px">
+        <div style="background:#f3f4f6;padding:4px 10px;border-radius:4px;border-left:3px solid #f97316;font-weight:700;font-size:12px;margin-bottom:5px">${esc(cat)}</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:#e5e7eb;font-size:10px;text-transform:uppercase;letter-spacing:.5px">
+            <th style="padding:4px 7px;text-align:left">Tâche</th>
+            <th style="padding:4px 7px;width:80px">Priorité</th>
+            <th style="padding:4px 7px;width:90px">Responsable</th>
+            <th style="padding:4px 7px;width:75px">Échéance</th>
+            <th style="padding:4px 7px;width:80px;text-align:center">Statut</th>
+          </tr></thead>
+          <tbody>
+          ${items.map(t=>`<tr style="border-bottom:1px solid #f3f4f6">
+            <td style="padding:5px 7px;font-weight:600;text-decoration:${t.status==='✅ Fait'?'line-through':'none'}">${esc(t.title)}${t.notes?`<div style="font-size:10px;color:#9ca3af;font-weight:400">${esc(t.notes)}</div>`:''}</td>
+            <td style="padding:5px 7px;font-size:11px">${esc(t.priority||'')}</td>
+            <td style="padding:5px 7px;color:#374151">${esc(t.resp||'—')}</td>
+            <td style="padding:5px 7px;color:#374151">${t.deadline?fmt(t.deadline):'—'}</td>
+            <td style="padding:5px 7px;text-align:center;font-size:11px;font-weight:700;color:${t.status==='✅ Fait'?'#16a34a':t.status==='En cours'?'#2563eb':'#d97706'}">${esc(t.status)}</td>
+          </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    }).join('')}`:''}
+
+    ${mat.length>0?`
+    <h2 style="font-size:15px;color:#c2410c;margin:16px 0 10px;border-bottom:2px solid #f97316;padding-bottom:4px">📦 Matériel assigné</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px">
+      <thead><tr style="background:#e5e7eb;font-size:10px;text-transform:uppercase;letter-spacing:.5px">
+        <th style="padding:4px 7px;text-align:left">Matériel</th>
+        <th style="padding:4px 7px;width:60px;text-align:center">Qté</th>
+        <th style="padding:4px 7px;width:100px">État</th>
+        <th style="padding:4px 7px">Responsable</th>
+      </tr></thead>
+      <tbody>
+      ${mat.map(m=>`<tr style="border-bottom:1px solid #f3f4f6">
+        <td style="padding:5px 7px;font-weight:600">${esc(m.nom)}</td>
+        <td style="padding:5px 7px;text-align:center;font-weight:700">${m.qte}</td>
+        <td style="padding:5px 7px;font-size:11px">${esc(m.etat)}</td>
+        <td style="padding:5px 7px;color:#374151">${esc(m.assigne_personne||'—')}</td>
+      </tr>`).join('')}
+      </tbody>
+    </table>`:''}
+
+    ${arts.length>0?`
+    <h2 style="font-size:15px;color:#c2410c;margin:16px 0 10px;border-bottom:2px solid #f97316;padding-bottom:4px">🛒 Liste de courses</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px">
+      <thead><tr style="background:#e5e7eb;font-size:10px;text-transform:uppercase;letter-spacing:.5px">
+        <th style="width:22px;padding:4px 6px;text-align:center">✓</th>
+        <th style="padding:4px 7px;text-align:left">Article</th>
+        <th style="padding:4px 7px;width:45px;text-align:center">Qté</th>
+        <th style="padding:4px 7px;width:55px">Unité</th>
+        <th style="padding:4px 7px;width:80px">Stock</th>
+        <th style="padding:4px 7px;width:60px;text-align:right">Total</th>
+        <th style="padding:4px 7px;width:85px">Acheteur</th>
+        <th style="padding:4px 7px;width:80px;text-align:center">Statut</th>
+      </tr></thead>
+      <tbody>
+      ${arts.map(a=>`<tr style="border-bottom:1px solid #f3f4f6">
+        <td style="padding:5px 6px;text-align:center"><span style="width:12px;height:12px;border:1.5px solid #9ca3af;display:inline-block;border-radius:2px"></span></td>
+        <td style="padding:5px 7px;font-weight:600">${esc(a.nom)}</td>
+        <td style="padding:5px 7px;text-align:center;font-weight:700">${a.qte_achetee}</td>
+        <td style="padding:5px 7px;color:#6b7280">${esc(a.unite||'')}</td>
+        <td style="padding:5px 7px;color:${a.en_stock?'#16a34a':'#d1d5db'};font-weight:${a.en_stock?700:400}">${a.en_stock?'✓ '+a.qte_stock+' '+esc(a.unite||''):'—'}</td>
+        <td style="padding:5px 7px;text-align:right;font-weight:600">${a.prix_unit?(a.prix_unit*a.qte_achetee).toFixed(2)+' €':'—'}</td>
+        <td style="padding:5px 7px;color:#374151">${esc(a.acheteur_resp||'')}</td>
+        <td style="padding:5px 7px;text-align:center;font-size:11px;font-weight:700;color:${a.statut==='Acheté ✅'?'#2563eb':a.statut==='En stock'?'#16a34a':'#d97706'}">${esc(a.statut)}</td>
+      </tr>`).join('')}
+      </tbody>
+    </table>
+    <div style="padding:8px 12px;background:#fff7ed;border:2px solid #f97316;border-radius:6px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:12px;color:#6b7280">${arts.length} articles</span>
+      <strong style="color:#c2410c">Budget total : ${budget.toFixed(2)} €</strong>
+    </div>`:''}
+
+    <div style="margin-top:16px;font-size:10px;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb;padding-top:8px">Généré par AssoMgr · ${today}</div>
+  `;
+  document.getElementById('print-overlay').style.display = 'block';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -745,9 +878,19 @@ async function cycleTaskStatus(id, current) {
   renderTasks(); loadDashboard();
 }
 
-async function deleteTask(id) {
+function deleteTask(id) {
+  const t = allTasks.find(x=>x.id===id);
+  showModal('🗑 Supprimer cette tâche ?', `
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Tâche : <strong style="color:var(--text)">${esc(t?.title||'')}</strong><br><span style="font-size:13px">Cette action est irréversible.</span></p>
+    <div class="flex-row" style="justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-danger" onclick="confirmDeleteTask('${id}')">🗑 Supprimer</button>
+    </div>
+  `);
+}
+async function confirmDeleteTask(id) {
   await sb.from('taches').delete().eq('id',id);
-  await loadAll(); renderTasks(); toast('Tâche supprimée','#da3633');
+  closeModal(); await loadAll(); renderTasks(); toast('Tâche supprimée','#da3633');
 }
 
 function applyTaskTemplate() {
@@ -840,9 +983,19 @@ async function saveMateriel() {
   closeModal(); await loadAll(); renderMaterielStats(); renderMateriel(); toast('Matériel enregistré ✅');
 }
 
-async function deleteMateriel(id) {
+function deleteMateriel(id) {
+  const m = allMateriel.find(x=>x.id===id);
+  showModal('🗑 Supprimer ce matériel ?', `
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Matériel : <strong style="color:var(--text)">${esc(m?.nom||'')}</strong><br><span style="font-size:13px">Cette action est irréversible.</span></p>
+    <div class="flex-row" style="justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-danger" onclick="confirmDeleteMateriel('${id}')">🗑 Supprimer</button>
+    </div>
+  `);
+}
+async function confirmDeleteMateriel(id) {
   await sb.from('materiel').delete().eq('id',id);
-  await loadAll(); renderMaterielStats(); renderMateriel(); toast('Matériel supprimé','#da3633');
+  closeModal(); await loadAll(); renderMaterielStats(); renderMateriel(); toast('Matériel supprimé','#da3633');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -984,8 +1137,21 @@ async function saveListe(isEdit=false) {
   onCourseListeChange(); toast('Liste enregistrée ✅');
 }
 
-async function deleteListe() {
+function deleteListe() {
+  const l = allListes.find(x=>x.id===selectedListeId);
+  const arts = allArticles.filter(a=>a.liste_id===selectedListeId);
+  showModal('🗑 Supprimer cette liste ?', `
+    <p style="color:var(--muted);font-size:14px;margin-bottom:6px">Liste : <strong style="color:var(--text)">${esc(l?.event_nom||'')}</strong></p>
+    ${arts.length>0?`<p style="color:var(--red);font-size:13px;margin-bottom:16px">⚠️ ${arts.length} article(s) seront également supprimés.</p>`:'<p style="color:var(--muted);font-size:13px;margin-bottom:16px">Cette action est irréversible.</p>'}
+    <div class="flex-row" style="justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-danger" onclick="confirmDeleteListe()">🗑 Supprimer définitivement</button>
+    </div>
+  `);
+}
+async function confirmDeleteListe() {
   await sb.from('listes_courses').delete().eq('id',selectedListeId);
+  closeModal();
   selectedListeId = null;
   document.getElementById('course-select').value = '';
   document.getElementById('course-actions').style.display='none';
@@ -1072,9 +1238,19 @@ async function cycleArticleStatus(id, current) {
   renderArticles(); loadDashboard();
 }
 
-async function deleteArticle(id) {
+function deleteArticle(id) {
+  const a = allArticles.find(x=>x.id===id);
+  showModal('🗑 Supprimer cet article ?', `
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Article : <strong style="color:var(--text)">${esc(a?.nom||'')}</strong><br><span style="font-size:13px">Cette action est irréversible.</span></p>
+    <div class="flex-row" style="justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-danger" onclick="confirmDeleteArticle('${id}')">🗑 Supprimer</button>
+    </div>
+  `);
+}
+async function confirmDeleteArticle(id) {
   await sb.from('articles_courses').delete().eq('id',id);
-  await loadAll(); renderArticles(); toast('Article supprimé','#da3633');
+  closeModal(); await loadAll(); renderArticles(); toast('Article supprimé','#da3633');
 }
 
 function openHistoModal() {
@@ -1167,6 +1343,18 @@ function closeModalOnOverlay(e) { if (e.target===document.getElementById('modal-
 // ═══════════════════════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════════════════════
+
+// Ping Supabase toutes les 4 minutes pour éviter la mise en pause
+async function keepAlive() {
+  try {
+    await sb.from('evenements').select('id').limit(1);
+    console.log('Supabase keep-alive OK', new Date().toLocaleTimeString());
+  } catch(e) {
+    console.warn('Keep-alive failed:', e);
+  }
+}
+setInterval(keepAlive, 4 * 60 * 1000); // toutes les 4 minutes
+
 loadAll();
 </script>
 </body>
