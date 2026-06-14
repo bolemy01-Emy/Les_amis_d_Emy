@@ -88,6 +88,9 @@ td{padding:7px 7px;border-bottom:1px solid var(--card);vertical-align:middle}
   <button class="nav-btn" onclick="showPage('taches')">✅ Tâches</button>
   <button class="nav-btn" onclick="showPage('materiel')">📦 Matériel</button>
   <button class="nav-btn" onclick="showPage('courses')">🛒 Courses</button>
+  <div style="margin-left:auto;padding:0 8px">
+    <button id="admin-btn" onclick="toggleAdmin()" style="background:#21262d;border:1px solid #30363d;color:#8b949e;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;padding:6px 14px;border-radius:20px;transition:all .2s">🔒 Mode admin</button>
+  </div>
 </nav>
 
 <div class="page">
@@ -210,7 +213,7 @@ td{padding:7px 7px;border-bottom:1px solid var(--card);vertical-align:middle}
         <button class="btn btn-ghost btn-sm" onclick="editListe()">✏️</button>
         <button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="applyCoursesTemplate()">🍖 Template BBQ</button>
         <button class="btn btn-blue btn-sm" onclick="openPrintView()">🖨️ Aperçu impression</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteListe()">🗑 Supprimer</button>
+        ${adminMode ? `<button class="btn btn-danger btn-sm" onclick="deleteListe()">🗑 Supprimer</button>` : ''}
       </div>
     </div>
   </div>
@@ -276,6 +279,7 @@ let currentPage = 'dashboard';
 let selectedEventId = null, selectedListeId = null;
 let editingId = null, editingType = null;
 let confirmDelId = null, confirmDelType = null;
+let adminMode = false;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTES
@@ -405,6 +409,73 @@ const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 const v = id => document.getElementById(id)?.value || '';
 const vn = id => parseFloat(document.getElementById(id)?.value || 0) || 0;
 const vc = id => document.getElementById(id)?.checked || false;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODE ADMIN
+// ═══════════════════════════════════════════════════════════════════════════════
+const ADMIN_CODE = '0504';
+
+function toggleAdmin() {
+  if (adminMode) {
+    // Désactiver le mode admin
+    adminMode = false;
+    updateAdminUI();
+    toast('Mode utilisateur activé', '#21262d');
+  } else {
+    // Demander le code
+    showModal('🔐 Accès administrateur', `
+      <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Entrez le code administrateur pour accéder aux fonctions de suppression.</p>
+      <div class="field">
+        <label class="lbl">Code admin</label>
+        <input id="admin-code-input" type="password" placeholder="••••" style="letter-spacing:4px;font-size:18px;text-align:center" onkeydown="if(event.key==='Enter')checkAdminCode()"/>
+      </div>
+      <div id="admin-error" style="color:var(--red);font-size:13px;margin-bottom:8px;display:none">❌ Code incorrect</div>
+      <div class="flex-row" style="justify-content:flex-end;margin-top:8px">
+        <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+        <button class="btn btn-primary" onclick="checkAdminCode()">Valider</button>
+      </div>
+    `);
+    setTimeout(()=>document.getElementById('admin-code-input')?.focus(), 100);
+  }
+}
+
+function checkAdminCode() {
+  const code = document.getElementById('admin-code-input')?.value;
+  if (code === ADMIN_CODE) {
+    adminMode = true;
+    closeModal();
+    updateAdminUI();
+    toast('Mode admin activé 🔓', '#238636');
+    renderEvents();
+    renderTasks();
+    renderMateriel();
+    renderArticles();
+  } else {
+    document.getElementById('admin-error').style.display = 'block';
+    document.getElementById('admin-code-input').value = '';
+    document.getElementById('admin-code-input').focus();
+  }
+}
+
+function updateAdminUI() {
+  const btn = document.getElementById('admin-btn');
+  if (adminMode) {
+    btn.style.background = '#238636';
+    btn.style.color = '#fff';
+    btn.style.borderColor = '#238636';
+    btn.textContent = '🔓 Admin actif';
+  } else {
+    btn.style.background = '#21262d';
+    btn.style.color = '#8b949e';
+    btn.style.borderColor = '#30363d';
+    btn.textContent = '🔒 Mode admin';
+    // Re-render pour masquer les boutons supprimer
+    renderEvents();
+    renderTasks();
+    renderMateriel();
+    renderArticles();
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // NAVIGATION
@@ -548,7 +619,7 @@ function renderEvents() {
         <button class="btn btn-ghost btn-sm" onclick="cloneEvent('${ev.id}')">📋 Cloner</button>
         ${tasks.length===0?`<button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="applyEventTemplate('${ev.id}')">🍖 Template BBQ</button>`:''}
         <button class="btn btn-blue btn-sm" onclick="printEvent('${ev.id}')">🖨️ Imprimer</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteEvent('${ev.id}')">🗑 Supprimer</button>
+        ${adminMode ? `<button class="btn btn-danger btn-sm" onclick="deleteEvent('${ev.id}')">🗑 Supprimer</button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -828,7 +899,7 @@ function renderTasks() {
             <div class="flex-row">
               <button onclick="cycleTaskStatus('${t.id}','${t.status}')" style="background:${sc}22;color:${sc};border:1px solid ${sc}44;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">${t.status}</button>
               <button style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px 5px" onclick="openTaskModal('${t.id}')">✏️</button>
-              <button style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;padding:2px 5px" onclick="deleteTask('${t.id}')">🗑</button>
+              ${adminMode ? `<button style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;padding:2px 5px" onclick="deleteTask('${t.id}')">🗑</button>` : ''}
             </div>
           </div>
         </div>`;
@@ -948,7 +1019,7 @@ function renderMateriel() {
       </div>
       <div class="flex-row" style="margin-top:10px">
         <button class="btn btn-ghost btn-sm" onclick="openMaterielModal('${m.id}')">✏️ Modifier</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteMateriel('${m.id}')">🗑 Supprimer</button>
+        ${adminMode ? `<button class="btn btn-danger btn-sm" onclick="deleteMateriel('${m.id}')">🗑 Supprimer</button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -1014,6 +1085,8 @@ function onCourseListeChange() {
   document.getElementById('course-actions').style.display = selectedListeId ? 'flex' : 'none';
   document.getElementById('course-stats').style.display = selectedListeId ? 'grid' : 'none';
   document.getElementById('course-filters').style.display = selectedListeId ? 'flex' : 'none';
+  document.getElementById('btn-delete-liste').innerHTML = adminMode
+    ? '<button class="btn btn-danger btn-sm" onclick="deleteListe()">🗑 Supprimer</button>' : '';
 
   // Populate category filter
   const catSel = document.getElementById('course-filter-cat');
@@ -1087,7 +1160,7 @@ function renderArticles() {
                   <td style="text-align:center"><button onclick="cycleArticleStatus('${a.id}','${a.statut}')" style="background:${sc}22;color:${sc};border:1px solid ${sc}44;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">${a.statut}</button></td>
                   <td><div style="display:flex;gap:3px">
                     <button style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:1px 3px" onclick="openArticleModal('${a.id}')">✏️</button>
-                    <button style="background:none;border:none;cursor:pointer;color:var(--red);font-size:13px;padding:1px 3px" onclick="deleteArticle('${a.id}')">🗑</button>
+                    ${adminMode ? `<button style="background:none;border:none;cursor:pointer;color:var(--red);font-size:13px;padding:1px 3px" onclick="deleteArticle('${a.id}')">🗑</button>` : ''}
                   </div></td>
                 </tr>`;
               }).join('')}
