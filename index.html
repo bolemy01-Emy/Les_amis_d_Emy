@@ -213,7 +213,7 @@ td{padding:7px 7px;border-bottom:1px solid var(--card);vertical-align:middle}
         <button class="btn btn-ghost btn-sm" onclick="editListe()">✏️</button>
         <button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="applyCoursesTemplate()">🍖 Template BBQ</button>
         <button class="btn btn-blue btn-sm" onclick="openPrintView()">🖨️ Aperçu impression</button>
-        ${adminMode ? `<button class="btn btn-danger btn-sm" onclick="deleteListe()">🗑 Supprimer</button>` : ''}
+        <span id="btn-delete-liste"></span>
       </div>
     </div>
   </div>
@@ -469,12 +469,18 @@ function updateAdminUI() {
     btn.style.color = '#8b949e';
     btn.style.borderColor = '#30363d';
     btn.textContent = '🔒 Mode admin';
-    // Re-render pour masquer les boutons supprimer
-    renderEvents();
-    renderTasks();
-    renderMateriel();
-    renderArticles();
   }
+  // Mettre à jour le bouton supprimer liste (HTML statique)
+  const delListe = document.getElementById('btn-delete-liste');
+  if (delListe) {
+    delListe.innerHTML = adminMode
+      ? '<button class="btn btn-danger btn-sm" onclick="deleteListe()">🗑 Supprimer</button>' : '';
+  }
+  // Re-render pour afficher/masquer tous les boutons supprimer
+  renderEvents();
+  renderTasks();
+  renderMateriel();
+  renderArticles();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
